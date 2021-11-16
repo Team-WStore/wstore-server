@@ -1,0 +1,9 @@
+Django==3.0.3
+rest_framework
+django-cors-headers
+django-rest-passwordreset
+django-allauth
+django-filter
+Pillow
+mysqlclient
+python-decouple==3.4
