@@ -12,8 +12,6 @@ from .models import Profile
 from .serializers import ProfileSerializer, ChangePasswordSerializer, ChangeEmailSerializer
 
 # Create your views here.
-
-
 class HandleProfile(
     generics.GenericAPIView,
     mixins.RetrieveModelMixin
@@ -27,7 +25,7 @@ class HandleProfile(
     def get(self, request):
         profile = get_object_or_404(
             Profile,
-            user=self.request.user
+            user=request.user
         )
 
         serializer = ProfileSerializer(profile)
@@ -48,7 +46,7 @@ class HandleProfile(
 
         dataSerializer = ProfileSerializer(
             profile,
-            data=self.request.data
+            data=request.data
         )
 
         if dataSerializer.is_valid():

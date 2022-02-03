@@ -1,38 +1,42 @@
+from unicodedata import name
 from django.db import models
 from django.contrib.auth.models import User
-from django_countries.fields import CountryField
 from slugify import slugify
+
+from core.models import ImageItem
 
 import random
 import string
-
-
-def create_ref_code():
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=20))
-
-
-CATEGORY_CHOICES = (
-    ('S', 'Shirt'),
-    ('SW', 'Sport wear'),
-    ('OW', 'Outwear'),
-    ('AC', 'Accesories'),
-)
 
 ADDRESS_CHOICES = (
     ('B', 'Billing'),
     ('S', 'Shipping'),
 )
+
+def create_ref_code():
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=20))
 # Create your models here.
 
-class ImageProductItem(models.Model):
-    image = models.URLField(max_length=200, null=True, blank= True)
-    def __str__(self):
-        return self.image
+class Category(models.Model):
+    name = models.CharField(max_length=30, verbose_name='Nombre')
+    image = models.ForeignKey(
+        ImageItem, on_delete=models.CASCADE,)
 
+    def __str__(self):
+        return self.name        
+
+class Brand(models.Model):
+    name = models.CharField(max_length=30)
+
+    def __str__(self):
+        return self.name
 
 class Product(models.Model):
-    name = models.CharField(max_length=200)
-    price = models.DecimalField(max_digits=7, decimal_places=2)
+    name = models.CharField(max_length=200, verbose_name='Nombre')
+    brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True)
+    price = models.DecimalField(
+        max_digits=7, decimal_places=2, verbose_name='Precio')
+    discount = models.PositiveIntegerField(null=True, blank=True)
     discount_price = models.DecimalField(
         max_digits=7,
         decimal_places=2,
@@ -40,11 +44,13 @@ class Product(models.Model):
         null=True,
         verbose_name='Precio con descuento'
     )
-    category = models.CharField(
-        choices=CATEGORY_CHOICES, max_length=2, verbose_name='Categoría')
-    images = models.ManyToManyField(ImageProductItem)
+    category = models.ForeignKey(
+        Category, verbose_name='Categoría', on_delete=models.CASCADE)
+    images = models.ManyToManyField(ImageItem, verbose_name='Imágenes')
     slug = models.SlugField(verbose_name='Nombre Slug',
                             unique=True, null=True, blank=True)
+    available = models.PositiveIntegerField(verbose_name='Disponibilidad', default=0)
+    description = models.TextField(verbose_name='Descripción')
 
     def __str__(self):
         return self.name
@@ -59,7 +65,9 @@ class Product(models.Model):
 
     def save(self, *args, **kwargs):
         self.slug = slugify(self.name)
+        self.discount_price = float(self.price) * (1 - (self.discount/100))
         super(Product, self).save(*args, **kwargs)
+
 
 class OrderItem(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -88,6 +96,13 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return "{} of {} -- {}".format(self.quantity, self.product.name, self.user.username)
+
+class WishlistItem(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return "{} -- {}".format(self.product.name, self.user.username)
 
 
 class Order(models.Model):
@@ -155,7 +170,7 @@ class Address(models.Model):
 
 
 class Payment(models.Model):
-    stripe_charge_id = models.CharField(max_length=50)
+    charge_id = models.CharField(max_length=50)
     user = models.ForeignKey(
         User, on_delete=models.SET_NULL, blank=True, null=True)
     amount = models.FloatField()

@@ -1,3 +1,5 @@
+from copy import copy
+from numpy import product
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -6,8 +8,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from django.conf import settings
 
-from .models import ImageProductItem, Product, Order, Address, OrderItem
-from .serializers import ProductSerializer, OrderSerializer, ItemOrderSerializer
+from .models import Category, Product, Order, Address, OrderItem, WishlistItem
+from core.models import ImageItem
+from .serializers import CategorySerializer, OrderItemSerializer, ProductSerializer, OrderSerializer, ItemOrderSerializer, WishlistItemSerializer
 
 from rest_framework import status
 
@@ -20,6 +23,12 @@ def is_valid_form(values):
             valid = False
     return valid
 
+class CategoryView(generics.GenericAPIView, mixins.ListModelMixin):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+    def get(self, request):
+        return self.list(request)
 
 class HandleProduct(
     generics.GenericAPIView,
@@ -47,7 +56,7 @@ class HandleProduct(
         )
 
         for id in images:
-            image_item = ImageProductItem.objects.get(id=id)
+            image_item = ImageItem.objects.get(id=id)
             product.images.add(image_item)
         product.save()
 
@@ -88,13 +97,24 @@ class CartDetailM(generics.GenericAPIView, mixins.DestroyModelMixin):
 class CartDetail(generics.GenericAPIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
-    serializer_class = OrderSerializer
+
+    def post(self,request):
+        id = request.data.get('id')
+        product = Product.objects.get(id=id)
+        orderItem = OrderItem.objects.filter(product=product)
+        if not orderItem.exists():
+            OrderItem.objects.create(user=request.user, product=product)
+            return Response({'ok':True}, status=status.HTTP_201_CREATED)
+        return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
 
     def get(self, request):
-        order = Order.objects.get(
+        items = OrderItem.objects.filter(
             user=request.user, ordered=False)
-        serializer = self.get_serializer(order)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        if items.exists():
+            serializer = OrderItemSerializer(items, many=True)
+            if serializer.is_valid:
+                return Response({'items':serializer.data}, status=status.HTTP_200_OK)
+        return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
 
     def put(self, request):
         try:
@@ -111,14 +131,41 @@ class CartDetail(generics.GenericAPIView):
                 order_item.quantity -= 1
 
             order_item.save()
-
-            if order_item.quantity <= 0:
-                order_item.delete()
         except ObjectDoesNotExist:
             return Response({'detail': 'No existe el item'}, status=status.HTTP_204_NO_CONTENT)
 
-        return Response(status=status.HTTP_200_OK)
+        return Response({'ok':True},status=status.HTTP_200_OK)
 
+class Wishlist(generics.GenericAPIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = WishlistItemSerializer
+
+    def get(self, request):
+        items = WishlistItem.objects.filter(user=request.user)
+        if items.exists():
+            serializer = self.serializer_class(items, many= True)
+            if serializer.is_valid:
+                return Response({'items':serializer.data}, status=status.HTTP_200_OK)
+        return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
+
+    def post(self, request):
+        id = request.data.get('id')
+        product = Product.objects.get(id=id)
+        wishlisItem = WishlistItem.objects.filter(product=product)
+        if not wishlisItem.exists():
+            WishlistItem.objects.create(user=request.user, product=product)
+            return Response({'ok':True}, status=status.HTTP_201_CREATED)
+        return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
+
+class WishlistQ(generics.GenericAPIView, mixins.DestroyModelMixin):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = WishlistItemSerializer
+    queryset = WishlistItem.objects.all()
+    
+    def delete(self, request, pk):
+        return self.destroy(request, pk)
 
 class Checkout(generics.GenericAPIView):
     authentication_classes = [TokenAuthentication]
