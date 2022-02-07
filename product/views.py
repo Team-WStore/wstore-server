@@ -99,6 +99,7 @@ class ItemProductCreate(generics.GenericAPIView):
         category = request.data.get('category')
         images = request.data.get('images', [])
         available = request.data.get('available')
+        description = request.data.get('description')
 
         product = Product.objects.create(
             name=name,
@@ -106,7 +107,8 @@ class ItemProductCreate(generics.GenericAPIView):
             price=price,
             discount=discount,
             category=Category.objects.get(id=category),
-            available=available
+            available=available,
+            description=description,
         )
 
         for id in images:
