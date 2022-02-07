@@ -1,14 +1,14 @@
 from copy import copy
 from numpy import product
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework import mixins, generics
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from django.conf import settings
 
-from .models import Category, Payment, Product, Order, Address, OrderItem, WishlistItem
+from .models import Brand, Category, Payment, Product, Order, Address, OrderItem, WishlistItem
 from core.models import ImageItem
 from .serializers import CategorySerializer, OrderItemSerializer, ProductSerializer, OrderSerializer, ItemOrderSerializer, WishlistItemSerializer
 
@@ -40,30 +40,6 @@ class HandleProduct(
 
     def get(self, request):
         return self.list(request)
-    
-    def post(self, request):
-        name = request.data.get('name')
-        price = request.data.get('price')
-        category = request.data.get('category')
-        discount_price = request.data.get('discount_price')
-        images = request.data.get('images', [])
-
-        product = Product.objects.create(
-            name=name,
-            price=price,
-            category=category,
-            discount_price=discount_price,
-        )
-
-        for id in images:
-            image_item = ImageItem.objects.get(id=id)
-            product.images.add(image_item)
-        product.save()
-
-        serializer = ProductSerializer(product)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED )
-
 
 class HandleProductP(
     generics.GenericAPIView,
@@ -74,6 +50,39 @@ class HandleProductP(
 
     def get(self, request, pk):
         return self.retrieve(request, pk)
+
+class ItemProductCreate(generics.GenericAPIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAdminUser]
+    serializer_class = ProductSerializer
+    queryset = Product.objects.all()
+
+    def post(self, request):
+        name = request.data.get('name')
+        brand = request.data.get('brand')
+        price = request.data.get('price')
+        discount = request.data.get('discount')
+        category = request.data.get('category')
+        images = request.data.get('images', [])
+        available = request.data.get('available')
+
+        product = Product.objects.create(
+            name=name,
+            brand=Brand.objects.get(id=brand),
+            price=price,
+            discount=discount,
+            category=Category.objects.get(id=category),
+            available=available
+        )
+
+        for id in images:
+            image_item = ImageItem.objects.get(id=id)
+            product.images.add(image_item)
+        product.save()
+
+        serializer = ProductSerializer(product)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class ProductDetail (generics.GenericAPIView):
     queryset = Product.objects.all()
