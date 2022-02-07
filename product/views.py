@@ -10,7 +10,7 @@ from django.conf import settings
 
 from .models import Brand, Category, Payment, Product, Order, Address, OrderItem, WishlistItem
 from core.models import ImageItem
-from .serializers import CategorySerializer, OrderItemSerializer, ProductSerializer, OrderSerializer, ItemOrderSerializer, WishlistItemSerializer
+from .serializers import BrandSerializer, CategorySerializer, OrderItemSerializer, ProductSerializer, OrderSerializer, ItemOrderSerializer, WishlistItemSerializer
 
 from rest_framework import status
 
@@ -29,6 +29,40 @@ class CategoryView(generics.GenericAPIView, mixins.ListModelMixin):
 
     def get(self, request):
         return self.list(request)
+
+class CategoryCreate(
+    generics.GenericAPIView,
+    mixins.CreateModelMixin
+    ):
+
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAdminUser]
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+    def post(self, request):
+        return self.create(request)
+
+class CategoryUpdateDelete(
+    generics.GenericAPIView,
+    mixins.DestroyModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin
+    ):
+
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAdminUser]
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+    def get(self, request, pk):
+        return self.retrieve(request, pk)
+
+    def delete(self, request, pk):
+        return self.destroy(request, pk)
+    
+    def put(self, request, pk):
+        return self.update(request, pk)
 
 class HandleProduct(
     generics.GenericAPIView,
@@ -271,6 +305,44 @@ class PaymentView(generics.GenericAPIView):
 
         except:
             return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
+
+class BrandView(
+    generics.GenericAPIView,
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    ):
+
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAdminUser]
+    queryset = Brand.objects.all()
+    serializer_class = BrandSerializer
+
+    def get(self, request):
+        return self.list(request)
+
+    def post(self, request):
+        return self.create(request)
+
+class BrandUpdateDelete(
+    generics.GenericAPIView,
+    mixins.DestroyModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin
+    ):
+
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAdminUser]
+    queryset = Brand.objects.all()
+    serializer_class = BrandSerializer
+
+    def get(self, request, pk):
+        return self.retrieve(request, pk)
+
+    def delete(self, request, pk):
+        return self.destroy(request, pk)
+    
+    def put(self, request, pk):
+        return self.update(request, pk)
 
 """ class PaymentHandler(generics.GenericAPIView):
     authentication_classes = [TokenAuthentication]
