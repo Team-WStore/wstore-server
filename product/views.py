@@ -8,7 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from django.conf import settings
 
-from .models import Category, Product, Order, Address, OrderItem, WishlistItem
+from .models import Category, Payment, Product, Order, Address, OrderItem, WishlistItem
 from core.models import ImageItem
 from .serializers import CategorySerializer, OrderItemSerializer, ProductSerializer, OrderSerializer, ItemOrderSerializer, WishlistItemSerializer
 
@@ -75,6 +75,15 @@ class HandleProductP(
     def get(self, request, pk):
         return self.retrieve(request, pk)
 
+class ProductDetail (generics.GenericAPIView):
+    queryset = Product.objects.all()
+    def get(self, request, slug):
+        product = Product.objects.filter(slug=slug)
+        if product.exists():
+            serializer = ProductSerializer(product[0])
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
+        return Response({'ok': False}, status=status.HTTP_100_CONTINUE)
+
 
 class CartTotal(generics.GenericAPIView):
     authentication_classes = [TokenAuthentication]
@@ -97,14 +106,22 @@ class CartDetailM(generics.GenericAPIView, mixins.DestroyModelMixin):
 class CartDetail(generics.GenericAPIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+    serializer_class = ItemOrderSerializer
+    queryset = OrderItem.objects.all()
 
     def post(self,request):
         id = request.data.get('id')
+        quantity = request.data.get('quantity', 0)
         product = Product.objects.get(id=id)
-        orderItem = OrderItem.objects.filter(product=product)
+        orderItem = OrderItem.objects.filter(user=request.user, product=product, ordered=False)
+
         if not orderItem.exists():
-            OrderItem.objects.create(user=request.user, product=product)
-            return Response({'ok':True}, status=status.HTTP_201_CREATED)
+            item = OrderItem.objects.create(user=request.user, product=product)
+            if(quantity != 0):
+                item.quantity = quantity
+                item.save()
+            serializer = ItemOrderSerializer(item)
+            return Response(serializer.data , status=status.HTTP_201_CREATED)
         return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
 
     def get(self, request):
@@ -112,8 +129,7 @@ class CartDetail(generics.GenericAPIView):
             user=request.user, ordered=False)
         if items.exists():
             serializer = OrderItemSerializer(items, many=True)
-            if serializer.is_valid:
-                return Response({'items':serializer.data}, status=status.HTTP_200_OK)
+            return Response({'items':serializer.data}, status=status.HTTP_200_OK)
         return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
 
     def put(self, request):
@@ -154,8 +170,9 @@ class Wishlist(generics.GenericAPIView):
         product = Product.objects.get(id=id)
         wishlisItem = WishlistItem.objects.filter(product=product)
         if not wishlisItem.exists():
-            WishlistItem.objects.create(user=request.user, product=product)
-            return Response({'ok':True}, status=status.HTTP_201_CREATED)
+            item = WishlistItem.objects.create(user=request.user, product=product)
+            serializer = ItemOrderSerializer(item)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
 
 class WishlistQ(generics.GenericAPIView, mixins.DestroyModelMixin):
@@ -167,7 +184,7 @@ class WishlistQ(generics.GenericAPIView, mixins.DestroyModelMixin):
     def delete(self, request, pk):
         return self.destroy(request, pk)
 
-class Checkout(generics.GenericAPIView):
+class PaymentView(generics.GenericAPIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = OrderSerializer
@@ -176,8 +193,6 @@ class Checkout(generics.GenericAPIView):
         json_data = dict()
 
         try:
-            # Api view has to implement even coupon form
-
             order = Order.objects.get(user=self.request.user, ordered=False)
             serializer = self.get_serializer(order)
             json_data = {
@@ -203,113 +218,52 @@ class Checkout(generics.GenericAPIView):
             return Response({'detail': 'No tienes una orden activa'}, status=status.HTTP_204_NO_CONTENT)
 
     def post(self, request):
+        # Fields for Address
+        city = request.data.get('city')
+        address = request.data.get('address')
+        zip = request.data.get('zip')
+
+        # Fields for Payment
+        charge_id = request.data.get('charge_id')
+        amount = request.data.get('total')
+
         try:
-            data = self.request.data
-            order = Order.objects.get(user=self.request.user, ordered=False)
+            location = Address.objects.create(
+                user = request.user,
+                city = city,
+                address = address,
+                zip = zip
+            )
 
-            use_default_shipping = data.get('use_default_shipping')
+            payment = Payment.objects.create(
+                user = request.user,
+                charge_id = charge_id,
+                amount = amount,
+            )
 
-            if use_default_shipping:
+            order = Order.objects.create(
+                user = request.user,
+                shipping_address = location,
+                payment = payment,
+            )
 
-                address_qs = Address.objects.filter(
-                    user=self.request.user,
-                    address_type='S',
-                    default=True
-                )
-                if address_qs.exists():
-                    shipping_address = address_qs[0]
-                    order.shipping_address = shipping_address
-                    order.save()
-                return Response({'detail': "Dirección de envío por defecto no disponible"}, status=status.HTTP_400_BAD_REQUEST)
-                # redirije a checkout
-            else:
-                # print("User is entering a new shipping address")
-                shipping_address1 = data.get('shipping_address')
-                shipping_address2 = data.get('shipping_address2')
-                shipping_country = data.get('shipping_country')
-                shipping_zip = data.get('shipping_zip')
+            items = OrderItem.objects.filter(user = request.user, ordered = False)
 
-                if is_valid_form([shipping_address1, shipping_country, shipping_zip]):
-                    shipping_address = Address(
-                        user=self.request.user,
-                        street_address=shipping_address1,
-                        apartment_address=shipping_address2,
-                        country=shipping_country,
-                        zip=shipping_zip,
-                        address_type='S'
-                    )
-                    shipping_address.save()
+            for i in items:
+                i.ordered = True
+                i.save()
+                order.products.add(i)
+            order.ordered = True
+            order.save()
 
-                    order.shipping_address = shipping_address
-                    order.save()
+            serializer = OrderSerializer(order)
 
-                    set_default_shipping = data.get('set_default_shipping')
-                    if set_default_shipping:
-                        shipping_address.default = True
-                        shipping_address.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-                return Response({'detail': 'Por favor llena los campos requeridos para la dirección de envío'}, status=status.HTTP_400_BAD_REQUEST)
-
-            use_default_billing = data.get('use_default_billing')
-            same_billing_address = data.get('same_billing_address')
-
-            if same_billing_address:
-                billing_address = shipping_address
-                billing_address.pk = None
-                billing_address.save()
-                billing_address.address_type = 'B'
-                billing_address.save()
-                order.billing_address = billing_address
-                order.save()
-
-            elif use_default_billing:
-                print("Using the default billing address")
-                address_qs = Address.objects.filter(
-                    user=self.request.user,
-                    address_type='B',
-                    default=True
-                )
-                if address_qs.exists():
-                    billing_address = address_qs[0]
-                    order.billing_address = billing_address
-                    order.save()
-                return Response({'detail': "Dirección de envío por defecto no disponible"}, status=status.HTTP_400_BAD_REQUEST)
-
-            else:
-                #print("User is entering a new billing address")
-                billing_address1 = data.get('billing_address')
-                billing_address2 = data.get('billing_address2')
-                billing_country = data.get('billing_country')
-                billing_zip = data.get('billing_zip')
-
-                if is_valid_form([billing_address1, billing_country, billing_zip]):
-                    billing_address = Address(
-                        user=self.request.user,
-                        street_address=billing_address1,
-                        apartment_address=billing_address2,
-                        country=billing_country,
-                        zip=billing_zip,
-                        address_type='B'
-                    )
-                    billing_address.save()
-
-                    order.billing_address = billing_address
-                    order.save()
-
-                    set_default_billing = data.get('set_default_billing')
-                    if set_default_billing:
-                        billing_address.default = True
-                        billing_address.save()
-
-                    return Response({'detail': 'Por favor llena los campos requeridos para la dirección de cartera'}, status=status.HTTP_400_BAD_REQUEST)
-                    # El usuario elige qué tipo de pago usar, el frontend lo redirije
-            return Response(status=status.HTTP_200_OK)
-        except ObjectDoesNotExist:
-            return Response({'detail': 'No tienes una orden activa'}, status=status.HTTP_204_NO_CONTENT)
         except:
-            return Response({'detail': 'Error: No ingresaste los campos'}, status=status.HTTP_204_NO_CONTENT)
+            return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
 
-class PaymentHandler(generics.GenericAPIView):
+""" class PaymentHandler(generics.GenericAPIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -336,4 +290,4 @@ class PaymentHandler(generics.GenericAPIView):
             address_type = 'S'
 		)
 
-        return Response({'detail':'La factura se ha creado con éxito'}, status=status.HTTP_200_OK)
+        return Response({'detail':'La factura se ha creado con éxito'}, status=status.HTTP_200_OK) """

@@ -8,10 +8,10 @@ from core.models import ImageItem
 import random
 import string
 
-ADDRESS_CHOICES = (
+""" ADDRESS_CHOICES = (
     ('B', 'Billing'),
     ('S', 'Shipping'),
-)
+) """
 
 def create_ref_code():
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=20))
@@ -110,18 +110,23 @@ class Order(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True)
     products = models.ManyToManyField(OrderItem)
+
     date_ordered = models.DateTimeField(auto_now_add=True)
     start_date = models.DateTimeField(auto_now_add=True)
-    ordered_date = models.DateTimeField(auto_now=True)
+
     ordered = models.BooleanField(default=False)
     shipping_address = models.ForeignKey(
-        'Address', related_name='shipping_address', on_delete=models.SET_NULL, blank=True, null=True)
-    billing_address = models.ForeignKey(
-        'Address', related_name='billing_address', on_delete=models.SET_NULL, blank=True, null=True)
+        'Address', on_delete=models.SET_NULL, blank=True, null=True)
+
+    """ billing_address = models.ForeignKey(
+        'Address', related_name='billing_address', on_delete=models.SET_NULL, blank=True, null=True) """
+        
     payment = models.ForeignKey(
         'Payment', on_delete=models.SET_NULL, blank=True, null=True)
-    coupon = models.ForeignKey(
-        'Coupon', on_delete=models.SET_NULL, blank=True, null=True)
+
+    """ coupon = models.ForeignKey(
+        'Coupon', on_delete=models.SET_NULL, blank=True, null=True) """
+
     being_delivered = models.BooleanField(default=False)
     received = models.BooleanField(default=False)
     refund_requested = models.BooleanField(default=False)
@@ -154,13 +159,12 @@ class Order(models.Model):
 
 class Address(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    address = models.CharField(max_length=100)
-    country = models.CharField(max_length=50)
     city = models.CharField(max_length=50)
-    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    address = models.CharField(max_length=100)
+    # country = models.CharField(max_length=50)
     zip = models.CharField(max_length=100)
-    address_type = models.CharField(max_length=1, choices=ADDRESS_CHOICES)
-    default = models.BooleanField(default=False)
+    # address_type = models.CharField(max_length=1, choices=ADDRESS_CHOICES)
+    # default = models.BooleanField(default=False)
 
     def __str__(self):
         return self.user.username
@@ -177,7 +181,7 @@ class Payment(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.user.username
+        return self.charge_id
 
 
 class Coupon(models.Model):
