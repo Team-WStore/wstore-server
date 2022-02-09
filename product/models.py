@@ -111,8 +111,6 @@ class Order(models.Model):
         User, on_delete=models.SET_NULL, null=True, blank=True)
     products = models.ManyToManyField(OrderItem)
 
-    date_ordered = models.DateTimeField(auto_now_add=True)
-    start_date = models.DateTimeField(auto_now_add=True)
 
     ordered = models.BooleanField(default=False)
     shipping_address = models.ForeignKey(
@@ -127,13 +125,22 @@ class Order(models.Model):
     """ coupon = models.ForeignKey(
         'Coupon', on_delete=models.SET_NULL, blank=True, null=True) """
 
-    being_delivered = models.BooleanField(default=False)
+    date_ordered = models.DateTimeField(auto_now_add=True)
+
+    reviewed_date = models.DateTimeField(auto_now_add=False)
+    reviewed = models.BooleanField(default=False)
+
+    sent_date = models.DateTimeField(auto_now_add=False)
+    sent = models.BooleanField(default=False)
+
+    delivered_date = models.DateTimeField(auto_now_add=False)
     received = models.BooleanField(default=False)
+
     refund_requested = models.BooleanField(default=False)
     refund_granted = models.BooleanField(default=False)
 
     class Meta:
-        ordering = ['-start_date']
+        ordering = ['-date_ordered']
 
     @property
     def get_total(self):

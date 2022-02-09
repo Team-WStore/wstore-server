@@ -25,7 +25,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         exclude = ['user']
-        depth=2
+        depth=3
 
 class WishlistItemSerializer(serializers.ModelSerializer):
     class Meta:

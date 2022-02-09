@@ -32,16 +32,25 @@ class CategoryView(generics.GenericAPIView, mixins.ListModelMixin):
 
 class CategoryCreate(
     generics.GenericAPIView,
-    mixins.CreateModelMixin
     ):
 
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAdminUser]
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
 
     def post(self, request):
-        return self.create(request)
+        name = request.data.get('name')
+        id = request.data.get('id')
+        image = ImageItem.objects.get(id=id)
+
+        category = Category.objects.create(
+            name=name,
+            image=image,
+        )
+
+        serializer = CategorySerializer(category)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class CategoryUpdateDelete(
     generics.GenericAPIView,
