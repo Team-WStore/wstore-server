@@ -1,7 +1,7 @@
 from attr import fields
 from rest_framework import serializers
 
-from .models import Brand, Category, Product, Order, OrderItem, WishlistItem
+from .models import Address, Brand, Category, Product, Order, OrderItem, WishlistItem
 
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
@@ -9,11 +9,6 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
         depth=2
 
-class OrderSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Order
-        exclude = ['user']
-        depth=2
 
 class ItemOrderSerializer(serializers.ModelSerializer):
     class Meta:
@@ -44,3 +39,16 @@ class BrandSerializer(serializers.ModelSerializer):
         model = Brand
         fields = '__all__'
         depth=1
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        exclude = ['user']
+        depth=1
+
+class OrderSerializer(serializers.ModelSerializer):
+    shipping_address = AddressSerializer
+    products = OrderItemSerializer
+    class Meta:
+        model = Order
+        exclude = ['user']
+        depth=2

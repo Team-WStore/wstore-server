@@ -16,12 +16,14 @@ from rest_framework import status
 
 # Create your views here.
 
+
 def is_valid_form(values):
     valid = True
     for field in values:
         if field == '':
             valid = False
     return valid
+
 
 class CategoryView(generics.GenericAPIView, mixins.ListModelMixin):
     queryset = Category.objects.all()
@@ -30,9 +32,10 @@ class CategoryView(generics.GenericAPIView, mixins.ListModelMixin):
     def get(self, request):
         return self.list(request)
 
+
 class CategoryCreate(
     generics.GenericAPIView,
-    ):
+):
 
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAdminUser]
@@ -52,12 +55,11 @@ class CategoryCreate(
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class CategoryUpdateDelete(
+class CategoryDelete(
     generics.GenericAPIView,
     mixins.DestroyModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.UpdateModelMixin
-    ):
+    mixins.RetrieveModelMixin
+):
 
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAdminUser]
@@ -69,9 +71,31 @@ class CategoryUpdateDelete(
 
     def delete(self, request, pk):
         return self.destroy(request, pk)
-    
-    def put(self, request, pk):
-        return self.update(request, pk)
+
+
+class CategoryUpdate(
+    generics.GenericAPIView,
+):
+
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAdminUser]
+
+    def put(self, request):
+        name = request.data.get('name')
+        category_id = request.data.get('category_id')
+        image_id = request.data.get('image_id')
+
+        image = ImageItem.objects.get(id=image_id)
+        category = Category.objects.get(id=category_id)
+
+        category.name = name
+        category.image = image
+        category.save()
+
+        serializer = CategorySerializer(category)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class HandleProduct(
     generics.GenericAPIView,
@@ -84,6 +108,7 @@ class HandleProduct(
     def get(self, request):
         return self.list(request)
 
+
 class HandleProductP(
     generics.GenericAPIView,
     mixins.RetrieveModelMixin,
@@ -93,6 +118,7 @@ class HandleProductP(
 
     def get(self, request, pk):
         return self.retrieve(request, pk)
+
 
 class ItemProductCreate(generics.GenericAPIView):
     authentication_classes = [TokenAuthentication]
@@ -129,8 +155,10 @@ class ItemProductCreate(generics.GenericAPIView):
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
 class ProductDetail (generics.GenericAPIView):
     queryset = Product.objects.all()
+
     def get(self, request, slug):
         product = Product.objects.filter(slug=slug)
         if product.exists():
@@ -148,6 +176,7 @@ class CartTotal(generics.GenericAPIView):
             user=request.user, ordered=False)
         return Response({'total': order.get_cart_items}, status=status.HTTP_200_OK)
 
+
 class CartDetailM(generics.GenericAPIView, mixins.DestroyModelMixin):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -157,17 +186,19 @@ class CartDetailM(generics.GenericAPIView, mixins.DestroyModelMixin):
     def delete(self, request, pk):
         return self.destroy(request, pk)
 
+
 class CartDetail(generics.GenericAPIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = ItemOrderSerializer
     queryset = OrderItem.objects.all()
 
-    def post(self,request):
+    def post(self, request):
         id = request.data.get('id')
         quantity = request.data.get('quantity', 0)
         product = Product.objects.get(id=id)
-        orderItem = OrderItem.objects.filter(user=request.user, product=product, ordered=False)
+        orderItem = OrderItem.objects.filter(
+            user=request.user, product=product, ordered=False)
 
         if not orderItem.exists():
             item = OrderItem.objects.create(user=request.user, product=product)
@@ -175,16 +206,16 @@ class CartDetail(generics.GenericAPIView):
                 item.quantity = quantity
                 item.save()
             serializer = ItemOrderSerializer(item)
-            return Response(serializer.data , status=status.HTTP_201_CREATED)
-        return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({'ok': False}, status=status.HTTP_100_CONTINUE)
 
     def get(self, request):
         items = OrderItem.objects.filter(
             user=request.user, ordered=False)
         if items.exists():
             serializer = OrderItemSerializer(items, many=True)
-            return Response({'items':serializer.data}, status=status.HTTP_200_OK)
-        return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
+            return Response({'items': serializer.data}, status=status.HTTP_200_OK)
+        return Response({'ok': False}, status=status.HTTP_100_CONTINUE)
 
     def put(self, request):
         try:
@@ -204,7 +235,8 @@ class CartDetail(generics.GenericAPIView):
         except ObjectDoesNotExist:
             return Response({'detail': 'No existe el item'}, status=status.HTTP_204_NO_CONTENT)
 
-        return Response({'ok':True},status=status.HTTP_200_OK)
+        return Response({'ok': True}, status=status.HTTP_200_OK)
+
 
 class Wishlist(generics.GenericAPIView):
     authentication_classes = [TokenAuthentication]
@@ -214,29 +246,32 @@ class Wishlist(generics.GenericAPIView):
     def get(self, request):
         items = WishlistItem.objects.filter(user=request.user)
         if items.exists():
-            serializer = self.serializer_class(items, many= True)
+            serializer = self.serializer_class(items, many=True)
             if serializer.is_valid:
-                return Response({'items':serializer.data}, status=status.HTTP_200_OK)
-        return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
+                return Response({'items': serializer.data}, status=status.HTTP_200_OK)
+        return Response({'ok': False}, status=status.HTTP_100_CONTINUE)
 
     def post(self, request):
         id = request.data.get('id')
         product = Product.objects.get(id=id)
         wishlisItem = WishlistItem.objects.filter(product=product)
         if not wishlisItem.exists():
-            item = WishlistItem.objects.create(user=request.user, product=product)
+            item = WishlistItem.objects.create(
+                user=request.user, product=product)
             serializer = ItemOrderSerializer(item)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
+        return Response({'ok': False}, status=status.HTTP_100_CONTINUE)
+
 
 class WishlistQ(generics.GenericAPIView, mixins.DestroyModelMixin):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     serializer_class = WishlistItemSerializer
     queryset = WishlistItem.objects.all()
-    
+
     def delete(self, request, pk):
         return self.destroy(request, pk)
+
 
 class PaymentView(generics.GenericAPIView):
     authentication_classes = [TokenAuthentication]
@@ -283,25 +318,25 @@ class PaymentView(generics.GenericAPIView):
 
         try:
             location = Address.objects.create(
-                user = request.user,
-                city = city,
-                address = address,
-                zip = zip
+                user=request.user,
+                city=city,
+                address=address,
+                zip=zip
             )
 
             payment = Payment.objects.create(
-                user = request.user,
-                charge_id = charge_id,
-                amount = amount,
+                user=request.user,
+                charge_id=charge_id,
+                amount=amount,
             )
 
             order = Order.objects.create(
-                user = request.user,
-                shipping_address = location,
-                payment = payment,
+                user=request.user,
+                shipping_address=location,
+                payment=payment,
             )
 
-            items = OrderItem.objects.filter(user = request.user, ordered = False)
+            items = OrderItem.objects.filter(user=request.user, ordered=False)
 
             for i in items:
                 i.ordered = True
@@ -315,13 +350,14 @@ class PaymentView(generics.GenericAPIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         except:
-            return Response({'ok':False}, status=status.HTTP_100_CONTINUE)
+            return Response({'ok': False}, status=status.HTTP_100_CONTINUE)
+
 
 class BrandView(
     generics.GenericAPIView,
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
-    ):
+):
 
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAdminUser]
@@ -334,12 +370,13 @@ class BrandView(
     def post(self, request):
         return self.create(request)
 
+
 class BrandUpdateDelete(
     generics.GenericAPIView,
     mixins.DestroyModelMixin,
     mixins.RetrieveModelMixin,
     mixins.UpdateModelMixin
-    ):
+):
 
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAdminUser]
@@ -351,9 +388,24 @@ class BrandUpdateDelete(
 
     def delete(self, request, pk):
         return self.destroy(request, pk)
-    
+
     def put(self, request, pk):
         return self.update(request, pk)
+
+
+class OrderView(
+    generics.GenericAPIView,
+    mixins.ListModelMixin
+):
+
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+
+    def get(self, request):
+        return self.list(request)
+
 
 """ class PaymentHandler(generics.GenericAPIView):
     authentication_classes = [TokenAuthentication]
