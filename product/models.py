@@ -134,6 +134,8 @@ class Order(models.Model):
     sent = models.BooleanField(default=False)
 
     delivered_date = models.DateTimeField(auto_now_add=False)
+    delivered = models.BooleanField(default=False)
+    
     received = models.BooleanField(default=False)
 
     refund_requested = models.BooleanField(default=False)

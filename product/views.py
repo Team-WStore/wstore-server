@@ -1,3 +1,4 @@
+from calendar import SATURDAY
 from copy import copy
 from numpy import product
 from rest_framework.authentication import TokenAuthentication
@@ -392,19 +393,56 @@ class BrandUpdateDelete(
     def put(self, request, pk):
         return self.update(request, pk)
 
-
+# Clase para visualizar todas las facturas desde Admin
 class OrderView(
     generics.GenericAPIView,
     mixins.ListModelMixin
 ):
 
     authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminUser]
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
     def get(self, request):
         return self.list(request)
+    
+    def put(self, request):
+        reviewed = request.data.get('reviewed', False)
+        sent = request.data.get('sent', False)
+        delivered = request.data.get('delivered', False)
+
+        id = request.data.get('id')
+        order = Order.objects.get(id=id)
+
+        if reviewed:
+            order.reviewed = True
+            order.reviewed_date = timezone.now()
+        
+        if sent:
+            order.sent = True
+            order.sent_date = timezone.now()
+        
+        if delivered:
+            order.delivered = True
+            order.delivered_date = timezone.now()
+        
+        order.save()
+
+        return Response({'ok':True}, status=status.HTTP_200_OK)
+
+# Vista para ser usada para ver las facturas desde un usuario corriente
+class OrderDetail(generics.GenericAPIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        orders = Order.objects.filter(user=request.user)
+
+        if orders.exists():
+            serializer = OrderSerializer(orders, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response([], status=status.HTTP_204_NO_CONTENT)
 
 
 """ class PaymentHandler(generics.GenericAPIView):
