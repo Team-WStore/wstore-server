@@ -1,5 +1,6 @@
 from calendar import SATURDAY
 from copy import copy
+import sys
 from numpy import product
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
@@ -165,7 +166,7 @@ class ProductDetail (generics.GenericAPIView):
         if product.exists():
             serializer = ProductSerializer(product[0])
             return Response(data=serializer.data, status=status.HTTP_200_OK)
-        return Response({'ok': False}, status=status.HTTP_100_CONTINUE)
+        return Response({'ok': False}, status=status.HTTP_204_NO_CONTENT)
 
 
 class CartTotal(generics.GenericAPIView):
@@ -208,7 +209,7 @@ class CartDetail(generics.GenericAPIView):
                 item.save()
             serializer = ItemOrderSerializer(item)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response({'ok': False}, status=status.HTTP_100_CONTINUE)
+        return Response({'ok': False}, status=status.HTTP_204_NO_CONTENT)
 
     def get(self, request):
         items = OrderItem.objects.filter(
@@ -216,7 +217,7 @@ class CartDetail(generics.GenericAPIView):
         if items.exists():
             serializer = OrderItemSerializer(items, many=True)
             return Response({'items': serializer.data}, status=status.HTTP_200_OK)
-        return Response({'ok': False}, status=status.HTTP_100_CONTINUE)
+        return Response({'ok': False}, status=status.HTTP_204_NO_CONTENT)
 
     def put(self, request):
         try:
@@ -250,7 +251,7 @@ class Wishlist(generics.GenericAPIView):
             serializer = self.serializer_class(items, many=True)
             if serializer.is_valid:
                 return Response({'items': serializer.data}, status=status.HTTP_200_OK)
-        return Response({'ok': False}, status=status.HTTP_100_CONTINUE)
+        return Response({'ok': False}, status=status.HTTP_204_NO_CONTENT)
 
     def post(self, request):
         id = request.data.get('id')
@@ -261,7 +262,7 @@ class Wishlist(generics.GenericAPIView):
                 user=request.user, product=product)
             serializer = ItemOrderSerializer(item)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response({'ok': False}, status=status.HTTP_100_CONTINUE)
+        return Response({'ok': False}, status=status.HTTP_204_NO_CONTENT)
 
 
 class WishlistQ(generics.GenericAPIView, mixins.DestroyModelMixin):
@@ -317,41 +318,42 @@ class PaymentView(generics.GenericAPIView):
         charge_id = request.data.get('charge_id')
         amount = request.data.get('total')
 
-        try:
-            location = Address.objects.create(
+        
+        location = Address.objects.create(
                 user=request.user,
                 city=city,
                 address=address,
                 zip=zip
             )
 
-            payment = Payment.objects.create(
+        payment = Payment.objects.create(
                 user=request.user,
                 charge_id=charge_id,
                 amount=amount,
             )
 
-            order = Order.objects.create(
+        order = Order.objects.create(
                 user=request.user,
                 shipping_address=location,
                 payment=payment,
             )
 
-            items = OrderItem.objects.filter(user=request.user, ordered=False)
+        items = OrderItem.objects.filter(user=request.user, ordered=False)
 
-            for i in items:
-                i.ordered = True
-                i.save()
-                order.products.add(i)
-            order.ordered = True
-            order.save()
+        for i in items:
+            i.ordered = True
+            i.save()
+            order.products.add(i)
+            
+        order.ordered = True
+        order.save()
 
-            serializer = OrderSerializer(order)
+        order.total = order.get_total
+        order.save()
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        serializer = OrderSerializer(order)
 
-        except:
-            return Response({'ok': False}, status=status.HTTP_100_CONTINUE)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class BrandView(

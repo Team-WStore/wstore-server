@@ -81,7 +81,7 @@ class OrderItem(models.Model):
 
     @property
     def get_total(self):
-        total = self.product.price * self.quantity
+        total = self.product.discount_price * self.quantity + 1
         return total
 
     @property
@@ -127,13 +127,13 @@ class Order(models.Model):
 
     date_ordered = models.DateTimeField(auto_now_add=True)
 
-    reviewed_date = models.DateTimeField(auto_now_add=False)
+    reviewed_date = models.DateTimeField(auto_now_add=False, null=True, blank=True)
     reviewed = models.BooleanField(default=False)
 
-    sent_date = models.DateTimeField(auto_now_add=False)
+    sent_date = models.DateTimeField(auto_now_add=False, null=True, blank=True)
     sent = models.BooleanField(default=False)
 
-    delivered_date = models.DateTimeField(auto_now_add=False)
+    delivered_date = models.DateTimeField(auto_now_add=False, null=True, blank=True)
     delivered = models.BooleanField(default=False)
     
     received = models.BooleanField(default=False)
@@ -141,16 +141,16 @@ class Order(models.Model):
     refund_requested = models.BooleanField(default=False)
     refund_granted = models.BooleanField(default=False)
 
+    total = models.DecimalField(
+        max_digits=7, decimal_places=2, verbose_name='Total', default='0.00')
+
     class Meta:
         ordering = ['-date_ordered']
 
     @property
     def get_total(self):
-        orderitems = self.items.all()
-        total = sum([item.get_total for item in orderitems])
-        if self.coupon:
-            total -= self.coupon.amount
-        return total
+        orderitems = self.products.all()
+        return sum([item.get_total for item in orderitems])
 
     @property
     def get_cart_items(self):
@@ -159,7 +159,7 @@ class Order(models.Model):
         return total
 
     def __str__(self):
-        return self.user.username + ' ---Date--- ' + str(self.start_date)
+        return self.user.username + ' ---Date--- ' + str(self.date_ordered)
 
     def save(self, *args, **kwargs):
         self.ref_code = create_ref_code()

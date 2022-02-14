@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Order, Product, OrderItem, Brand, Category, WishlistItem
+from .models import Address, Order, Payment, Product, OrderItem, Brand, Category, WishlistItem
 
 # Register your models here.
 class ProductAdmin(admin.ModelAdmin):
@@ -12,3 +12,5 @@ admin.site.register(OrderItem)
 admin.site.register(WishlistItem)
 admin.site.register(Brand)
 admin.site.register(Category)
+admin.site.register(Payment)
+admin.site.register(Address)
