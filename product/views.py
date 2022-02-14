@@ -160,6 +160,12 @@ class ItemProductCreate(generics.GenericAPIView):
         serializer = ProductSerializer(product)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class ItemProductUpdate(generics.GenericAPIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAdminUser]
+    serializer_class = ProductSerializer
+    queryset = Product.objects.all()
     
     def put(self, request):
         id = request.data.get('id')

@@ -1,10 +1,11 @@
 from django.urls import path
 
-from .views import BrandUpdateDelete, BrandView, CategoryCreate, CategoryDelete, CategoryUpdate, CategoryView, HandleProduct, HandleProductP, CartTotal, CartDetail, CartDetailM, ItemProductCreate, OrderDetail, OrderView, PaymentView, Wishlist, WishlistQ, ProductDetail
+from .views import BrandUpdateDelete, BrandView, CategoryCreate, CategoryDelete, CategoryUpdate, CategoryView, HandleProduct, HandleProductP, CartTotal, CartDetail, CartDetailM, ItemProductCreate, ItemProductUpdate, OrderDetail, OrderView, PaymentView, Wishlist, WishlistQ, ProductDetail
 
 product_patterns = ([
     path('product/', HandleProduct.as_view()),
     path("product-create/", ItemProductCreate.as_view()),
+    path("product-update/", ItemProductUpdate.as_view()),
     path('category/', CategoryView.as_view()),
     path('category-create/', CategoryCreate.as_view()),
     path('category-modify/<int:pk>', CategoryDelete.as_view()),
