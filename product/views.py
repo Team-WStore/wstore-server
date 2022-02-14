@@ -1,7 +1,7 @@
 from calendar import SATURDAY
 from copy import copy
 import sys
-from numpy import product
+from numpy import delete, product
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
@@ -114,12 +114,16 @@ class HandleProduct(
 class HandleProductP(
     generics.GenericAPIView,
     mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
 ):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
 
     def get(self, request, pk):
         return self.retrieve(request, pk)
+    
+    def delete(self, request, pk):
+        return self.delete(request, pk)
 
 
 class ItemProductCreate(generics.GenericAPIView):
@@ -147,6 +151,36 @@ class ItemProductCreate(generics.GenericAPIView):
             available=available,
             description=description,
         )
+
+        for id in images:
+            image_item = ImageItem.objects.get(id=id)
+            product.images.add(image_item)
+        product.save()
+
+        serializer = ProductSerializer(product)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    def put(self, request):
+        id = request.data.get('id')
+        name = request.data.get('name')
+        brand = request.data.get('brand')
+        price = request.data.get('price')
+        discount = request.data.get('discount')
+        category = request.data.get('category')
+        images = request.data.get('images', [])
+        available = request.data.get('available')
+        description = request.data.get('description')
+
+        product = Product.objects.get(id=id)
+        product.images.delete()
+        product.name = name
+        product.brand = Brand.objects.get(id=brand)
+        product.price = price
+        product.discount = discount
+        product.category = Category.objects.get(id=category)
+        product.available = available
+        product.description = description
 
         for id in images:
             image_item = ImageItem.objects.get(id=id)
