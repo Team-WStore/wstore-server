@@ -475,6 +475,16 @@ class OrderView(
 
         return Response({'ok':True}, status=status.HTTP_200_OK)
 
+class OrderRetrieve(generics.GenericAPIView, mixins.RetrieveModelMixin):
+
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [TokenAuthentication]
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+
+    def get(self, request, pk):
+        return self.retrieve(request, pk)
+    
 # Vista para ser usada para ver las facturas desde un usuario corriente
 class OrderDetail(generics.GenericAPIView):
     authentication_classes = [TokenAuthentication]
@@ -487,33 +497,3 @@ class OrderDetail(generics.GenericAPIView):
             serializer = OrderSerializer(orders, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response([], status=status.HTTP_204_NO_CONTENT)
-
-
-""" class PaymentHandler(generics.GenericAPIView):
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        order = Order.objects.get(user=request.user, ordered=False)
-        data = self.request.data
-
-        order_items = order.products.all()
-        order_items.update(ordered=True)
-        for item in order_items:
-            item.save()
-
-        order.ordered = True
-        #order.payment = payment
-        order.save()
-
-        Address.objects.create(
-            user=request.user,
-            order=order,
-            address=data.get('address'),
-            city=data.get('city'),
-            country=data.get('country'),
-            zip=data.get('zip'),
-            address_type = 'S'
-		)
-
-        return Response({'detail':'La factura se ha creado con éxito'}, status=status.HTTP_200_OK) """
