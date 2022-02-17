@@ -116,6 +116,8 @@ class HandleProductP(
     mixins.RetrieveModelMixin,
     mixins.DestroyModelMixin,
 ):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAdminUser]
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
 
@@ -123,7 +125,7 @@ class HandleProductP(
         return self.retrieve(request, pk)
     
     def delete(self, request, pk):
-        return self.delete(request, pk)
+        return self.destroy(request, pk)
 
 
 class ItemProductCreate(generics.GenericAPIView):
@@ -179,7 +181,7 @@ class ItemProductUpdate(generics.GenericAPIView):
         description = request.data.get('description')
 
         product = Product.objects.get(id=id)
-        product.images.delete()
+        product.images.clear()
         product.name = name
         product.brand = Brand.objects.get(id=brand)
         product.price = price
