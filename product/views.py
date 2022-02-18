@@ -3,7 +3,7 @@ from copy import copy
 import sys
 from numpy import delete, product
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework import mixins, generics
 from django.core.exceptions import ObjectDoesNotExist
@@ -495,5 +495,20 @@ class OrderDetail(generics.GenericAPIView):
 
         if orders.exists():
             serializer = OrderSerializer(orders, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response([], status=status.HTTP_204_NO_CONTENT)
+
+class SearchFilter(generics.GenericAPIView):
+
+    permission_classes = [AllowAny]
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    
+    def post(self, request):
+        phrase = request.data.get('phrase', '')
+
+        products = Product.objects.filter(name__icontains=phrase)
+        if products.exists():
+            serializer = ProductSerializer(products, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response([], status=status.HTTP_204_NO_CONTENT)

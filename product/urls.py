@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import BrandUpdateDelete, BrandView, CategoryCreate, CategoryDelete, CategoryUpdate, CategoryView, HandleProduct, HandleProductP, CartTotal, CartDetail, CartDetailM, ItemProductCreate, ItemProductUpdate, OrderDetail, OrderRetrieve, OrderView, PaymentView, Wishlist, WishlistQ, ProductDetail
+from .views import BrandUpdateDelete, BrandView, CategoryCreate, CategoryDelete, CategoryUpdate, CategoryView, HandleProduct, HandleProductP, CartTotal, CartDetail, CartDetailM, ItemProductCreate, ItemProductUpdate, OrderDetail, OrderRetrieve, OrderView, PaymentView, SearchFilter, Wishlist, WishlistQ, ProductDetail
 
 product_patterns = ([
     path('product/', HandleProduct.as_view()),
@@ -23,4 +23,5 @@ product_patterns = ([
     path("order/", OrderView.as_view()),
     path("order-detail/", OrderDetail.as_view()),
     path("order-detail/<int:pk>", OrderRetrieve.as_view()),
+    path("search/", SearchFilter.as_view()),
 ], 'product')
