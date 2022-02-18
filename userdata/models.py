@@ -5,18 +5,12 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save
 
 # Reset password packages
-from django.urls import reverse
 from django_rest_passwordreset.signals import reset_password_token_created
 # Send email Multialternative
 from django.shortcuts import render
 from django.template.loader import get_template
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
-
-def custom_upload_to(instance, filename):
-    old_instance = Profile.objects.get(pk=instance.pk)
-    old_instance.avatar.delete()
-    return 'profiles/' + filename
 
 # Create your models here.
 class Profile(models.Model):
@@ -26,7 +20,7 @@ class Profile(models.Model):
     phone = models.CharField(max_length=15, default='')
     identity = models.CharField(max_length=15, default='')
     address = models.CharField(max_length=50, null=True, blank=True)
-    avatar = models.ImageField(upload_to=custom_upload_to, null=True, blank=True)
+    avatar = models.URLField(max_length=500)
 
     def __str__(self):
         return self.user.username

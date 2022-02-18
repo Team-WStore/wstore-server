@@ -1,3 +1,5 @@
+from ctypes import cast
+from email.policy import default
 from decouple import config
 import os
 
@@ -23,7 +25,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', cast=bool)
+DEBUG = config('DEBUG', cast=bool, default=False)
 
 ALLOWED_HOSTS = ['*']
 
