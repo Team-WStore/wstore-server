@@ -1,6 +1,7 @@
 from decouple import config
 import os
 import django_heroku
+import dj_database_url
 
 from rest_framework.authentication import SessionAuthentication
 
@@ -108,18 +109,9 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'HOST': config('DB_HOST'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'PORT': config('DB_PORT'),
-        'OPTIONS': {
-            'init_command': 'SET sql_mode="STRICT_TRANS_TABLES"',
-        },
-        'RECONNECT': 'true'
-    }
+    'default': dj_database_url.config(
+        default=config('CLEARDB_DATABASE_URL')
+    )
 }
 
 
