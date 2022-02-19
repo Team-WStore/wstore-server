@@ -80,7 +80,8 @@ CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ORIGIN_REGEX_WHITELIST = [
-    'https://wstore-shopping.herokuapp.com'
+    'https://wstore-shopping.herokuapp.com',
+    'https://wstore-admin.herokuapp.com',
     'http://localhost:3000',
     'http://192.168.56.1:3000',
 ]
