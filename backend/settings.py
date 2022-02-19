@@ -1,10 +1,6 @@
-from ctypes import cast
-from email.policy import default
 from decouple import config
 import os
-
-#import pymysql
-# pymysql.install_as_MySQLdb()
+import django_heroku
 
 from rest_framework.authentication import SessionAuthentication
 
@@ -201,3 +197,5 @@ EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = config('USER_MAIL')
 EMAIL_HOST_PASSWORD = config('USER_MAIL_PASSWORD')
+
+django_heroku.settings(locals())
