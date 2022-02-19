@@ -1,14 +1,9 @@
-from calendar import SATURDAY
-from copy import copy
-import sys
-from numpy import delete, product
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework import mixins, generics
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
-from django.conf import settings
 
 from .models import Brand, Category, Payment, Product, Order, Address, OrderItem, WishlistItem
 from core.models import ImageItem
@@ -17,8 +12,6 @@ from .serializers import BrandSerializer, CategorySerializer, OrderItemSerialize
 from rest_framework import status
 
 # Create your views here.
-
-
 def is_valid_form(values):
     valid = True
     for field in values:
