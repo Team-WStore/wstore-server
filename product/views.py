@@ -471,7 +471,7 @@ class OrderView(
 class OrderRetrieve(generics.GenericAPIView, mixins.RetrieveModelMixin):
 
     authentication_classes = [TokenAuthentication]
-    permission_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
